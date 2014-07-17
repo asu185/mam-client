@@ -65,8 +65,10 @@ public class Extractor extends Activity {
 	Context context = this;
 	
 	private Button btnUpload;
-	private int apknum = 0;
+	private int app_num = 0;
+	private int apk_num = 0;
 	private int count = 0;
+	private int limit_num = 1;
 	private Boolean firstTime_upload_flag = true;
 	private String xml_name = "/default.xml";
 	private String IMEI = "default_IMEI";
@@ -116,7 +118,10 @@ public class Extractor extends Activity {
 		WifiInfo wifiinfo = wifimanager.getConnectionInfo();
 
 		final List<PackageInfo> appList = pManager.getInstalledPackages(0);
-
+		
+		//app_num = appList.size();
+		app_num = limit_num;
+		
 		// create a new file called "new.xml" in the SD card
 		File newxmlfile = new File(Environment.getExternalStorageDirectory() + xml_name);
 		try {
@@ -213,10 +218,10 @@ public class Extractor extends Activity {
 				String shareduid = null;
 				String srcdir = appInfo.applicationInfo.sourceDir;
 
-				if(apknum < 2){
+				if(apk_num < limit_num){
 					//uploadFiles(srcdir);
 					new UploadToServerTask("http://140.113.179.233:3001/upload", srcdir).execute();
-					apknum++;
+					apk_num++;
 				}
 				// Log.i("PackageList", "package: "+appPName +", sourceDir: "+
 				// srcdir );
@@ -492,7 +497,8 @@ public class Extractor extends Activity {
 		
 		@Override
 		protected String doInBackground(Void... arg0) {
-			Log.i("SENSEsysinfo", "UploadToServerTask: doInBackground");
+			count++;
+			Log.i("SENSEsysinfo", "UploadToServerTask: " + count);
 		    GetServerMessage message = new GetServerMessage();
 		    //String msg = message.stringQuery("http://140.113.179.233:3001/upload");
 		    String msg = message.upload(this.url, this.path);
@@ -501,7 +507,7 @@ public class Extractor extends Activity {
 		
 		///* back to UI thread
 		protected void onPostExecute(String results) {
-			Log.i("SENSEsysinfo", "UploadToServerTask: onPostExecute");
+			//Log.i("SENSEsysinfo", "UploadToServerTask: onPostExecute");
 			
 			try {
 				Log.i("SENSEsysinfo", "Response: " + results);
@@ -537,10 +543,13 @@ public class Extractor extends Activity {
 	    }
 	    */
 	    public String upload(String url, String file_path) {
-			Log.i("SENSEsysinfo", "Upload files.");
-			count++;
+			//Log.i("SENSEsysinfo", "Upload files.");
 			
 			List< NameValuePair> params = new ArrayList< NameValuePair>();
+			if(count == app_num + 1){ ///* 當count = app numbers + config.xml表示此次為最後一個上傳的檔案
+				Log.i("SENSEsysinfo", "This's last uploading. count == app_num == " + app_num);
+				params.add(new BasicNameValuePair("finish", "true")); ///* put imei in req.body
+			}
 			params.add(new BasicNameValuePair("imei", IMEI)); ///* put imei in req.body
             params.add(new BasicNameValuePair("file", file_path));
             HttpClient httpclient = new DefaultHttpClient();
@@ -561,7 +570,7 @@ public class Extractor extends Activity {
                     }
                 }
                 post.setEntity(entity);
-                Log.i("SENSEsysinfo", "Upload files2. count = " + count);
+                
                 //create response handler
                 //ResponseHandler< String> handler = new BasicResponseHandler();
                 //execute and get response
