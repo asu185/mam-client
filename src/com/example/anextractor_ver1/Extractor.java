@@ -68,7 +68,7 @@ public class Extractor extends Activity {
 	private int app_num = 0;
 	private int apk_num = 0;
 	private int count = 0;
-	private int limit_num = 1;
+	private int limit_num = 1000;
 	private Boolean firstTime_upload_flag = true;
 	private String xml_name = "/default.xml";
 	private String IMEI = "default_IMEI";
@@ -94,6 +94,9 @@ public class Extractor extends Activity {
 		public void onClick(View v) {
 			Log.i("SENSEsysinfo", "SENSEsysinfo begin.");
 
+			count = 0;
+			app_num = 0;
+			
 			// Load all the application information on system
 			extract_app_infos();
 
@@ -120,7 +123,7 @@ public class Extractor extends Activity {
 		final List<PackageInfo> appList = pManager.getInstalledPackages(0);
 		
 		//app_num = appList.size();
-		app_num = limit_num;
+		//app_num = limit_num;
 		
 		// create a new file called "new.xml" in the SD card
 		File newxmlfile = new File(Environment.getExternalStorageDirectory() + xml_name);
@@ -217,8 +220,17 @@ public class Extractor extends Activity {
 				Signature[] signatures = null;
 				String shareduid = null;
 				String srcdir = appInfo.applicationInfo.sourceDir;
-
-				if(apk_num < limit_num){
+				
+				if ((appInfo.applicationInfo.flags & appInfo.applicationInfo.FLAG_SYSTEM) <= 0) {
+					appType = "[User app]";
+					app_num++;
+					// Log.i("SENSEsysinfo", appType);
+				} else {
+					appType = "[System app]";
+					// Log.i("SENSEsysinfo", appType);
+				}
+				
+				if( (apk_num < limit_num) && appType.equalsIgnoreCase("[User app]") ){
 					//uploadFiles(srcdir);
 					new UploadToServerTask("http://140.113.179.233:3001/upload", srcdir).execute();
 					apk_num++;
@@ -266,13 +278,7 @@ public class Extractor extends Activity {
 				 * Log.i("SENSEsysinfo",
 				 * "FLAG_SYSTEM: "+appInfo.applicationInfo.FLAG_SYSTEM);
 				 */
-				if ((appInfo.applicationInfo.flags & appInfo.applicationInfo.FLAG_SYSTEM) <= 0) {
-					appType = "[User app]";
-					// Log.i("SENSEsysinfo", appType);
-				} else {
-					appType = "[System app]";
-					// Log.i("SENSEsysinfo", appType);
-				}
+				
 				/*
 				 * Log.i("SENSEsysinfo", "App version name: "+appVer);
 				 * Log.i("SENSEsysinfo", "App version code: "+appVerCode);
@@ -294,71 +300,75 @@ public class Extractor extends Activity {
 				 * 
 				 * }
 				 */
-
-				serializer.startTag(null, appPName);
-				serializer.startTag(null, "appName");
-				serializer.text(appName);
-				serializer.endTag(null, "appName");
-
-				serializer.startTag(null, "appType");
-				serializer.text(appType);
-				serializer.endTag(null, "appType");
-
-				serializer.startTag(null, "appVersion");
-				serializer.text("Version: " + appVer);
-				serializer.endTag(null, "appVersion");
-				serializer.startTag(null, "appPermission");
-				for (int j = 0; j < permCount; ++j) {
-					// Log.i("SENSEsysinfo", "12"+rPermission[j]);
-					if (j != (permCount - 1))
-						serializer.text("\n      " + rPermission[j]);
-
+				if(appType.equalsIgnoreCase("[User app]")){
+									
+					serializer.startTag(null, appPName);
+					serializer.startTag(null, "appName");
+					serializer.text(appName);
+					serializer.endTag(null, "appName");
+	
+					serializer.startTag(null, "appType");
+					serializer.text(appType);
+					serializer.endTag(null, "appType");
+	
+					serializer.startTag(null, "appVersion");
+					serializer.text("Version: " + appVer);
+					serializer.endTag(null, "appVersion");
+					/*
+					serializer.startTag(null, "appPermission");
+					for (int j = 0; j < permCount; ++j) {
+						// Log.i("SENSEsysinfo", "12"+rPermission[j]);
+						if (j != (permCount - 1))
+							serializer.text("\n      " + rPermission[j]);
+	
+					}
+					serializer.text("\n");
+					serializer.endTag(null, "appPermission");
+					*/
+					/*
+					 * serializer.startTag(null, "Activity"); //activity int
+					 * actCount=(activity==null) ? 0 : activity.length;
+					 * 
+					 * for(int j=0; j<actCount; ++j){
+					 * 
+					 * if(j != (actCount-1))
+					 * serializer.text("\n  -"+activity[j].toString());
+					 * 
+					 * }
+					 * 
+					 * serializer.endTag(null, "Activity");
+					 * 
+					 * serializer.startTag(null, "Service"); //service int
+					 * serCount=(service==null) ? 0 : service.length;
+					 * //Log.e("SENSEsysinfo", "Servicenum: "+serCount); for(int
+					 * j=0; j<serCount; ++j){
+					 * 
+					 * if(j != (serCount-1))
+					 * serializer.text("\n  -"+service[j].toString()); }
+					 * serializer.endTag(null, "Service");
+					 * 
+					 * serializer.startTag(null, "Provider"); //provider int
+					 * proCount=(provider==null) ? 0 : provider.length;
+					 * //Log.e("SENSEsysinfo", "Providernum: "+proCount); for(int
+					 * j=0; j<proCount; ++j){
+					 * 
+					 * if(j != (proCount-1))
+					 * serializer.text("\n  -"+provider[j].toString()); }
+					 * serializer.endTag(null, "Provider");
+					 * 
+					 * serializer.startTag(null, "Receiver");
+					 * 
+					 * //receiver int recCount=(receiver==null) ? 0 :
+					 * receiver.length; //Log.e("SENSEsysinfo",
+					 * "Receivernum: "+recCount); for(int j=0; j<recCount; ++j){
+					 * 
+					 * if(j != (recCount-1))
+					 * serializer.text("\n  -"+receiver[j].toString()); }
+					 * serializer.endTag(null, "Receiver");
+					 */
+					serializer.endTag(null, appPName);
 				}
-				serializer.text("\n");
-				serializer.endTag(null, "appPermission");
-				/*
-				 * serializer.startTag(null, "Activity"); //activity int
-				 * actCount=(activity==null) ? 0 : activity.length;
-				 * 
-				 * for(int j=0; j<actCount; ++j){
-				 * 
-				 * if(j != (actCount-1))
-				 * serializer.text("\n  -"+activity[j].toString());
-				 * 
-				 * }
-				 * 
-				 * serializer.endTag(null, "Activity");
-				 * 
-				 * serializer.startTag(null, "Service"); //service int
-				 * serCount=(service==null) ? 0 : service.length;
-				 * //Log.e("SENSEsysinfo", "Servicenum: "+serCount); for(int
-				 * j=0; j<serCount; ++j){
-				 * 
-				 * if(j != (serCount-1))
-				 * serializer.text("\n  -"+service[j].toString()); }
-				 * serializer.endTag(null, "Service");
-				 * 
-				 * serializer.startTag(null, "Provider"); //provider int
-				 * proCount=(provider==null) ? 0 : provider.length;
-				 * //Log.e("SENSEsysinfo", "Providernum: "+proCount); for(int
-				 * j=0; j<proCount; ++j){
-				 * 
-				 * if(j != (proCount-1))
-				 * serializer.text("\n  -"+provider[j].toString()); }
-				 * serializer.endTag(null, "Provider");
-				 * 
-				 * serializer.startTag(null, "Receiver");
-				 * 
-				 * //receiver int recCount=(receiver==null) ? 0 :
-				 * receiver.length; //Log.e("SENSEsysinfo",
-				 * "Receivernum: "+recCount); for(int j=0; j<recCount; ++j){
-				 * 
-				 * if(j != (recCount-1))
-				 * serializer.text("\n  -"+receiver[j].toString()); }
-				 * serializer.endTag(null, "Receiver");
-				 */
-				serializer.endTag(null, appPName);
-
+				
 				/*
 				 * serializer.startTag(null, appName); serializer.startTag(null,
 				 * "appPName"); serializer.text(appPName);
